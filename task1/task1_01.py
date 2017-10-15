@@ -4,16 +4,12 @@ from random import randint
 b = 50 # the more bands the less false negatives
 r = 25 # the more rows the less false positives
 
-# size of one signature = number of min-hashing functions used
-min_hash_size = r*b
-
-# large prime numbers used by the hash functions
-prime1 = 1400305337
-prime2 = 1400305369
-
 # size of output spaces of the hash functions
 shingle_space_size = 8193
 band_hash_bucket_size = 10000000 # as large as we can afford
+
+# size of one signature = number of min-hashing functions used
+min_hash_size = r*b
 
 # u.a.r integers a and b used for min-hashing/permutations
 # a and b consist of min_hash_size elements
@@ -25,11 +21,13 @@ b = [randint(0, shingle_space_size) for i in range(min_hash_size)]
 c = [randint(1, band_hash_bucket_size) for i in range(r)]
 d = [randint(0, band_hash_bucket_size) for i in range(r)]
 
+# large prime numbers used by the hash functions
+prime1 = 1400305337
+prime2 = 1400305369
+
 # calculate the Jaccard similarity between two lists
 def similarity(list1, list2):
-    set1 = set(list1)
-    set2 = set(list2)
-    return len(set1 & set2) * 1.0/len(set1 | set2)
+    return len(set(list1) & set(list2)) * 1.0/len(set1 | set2)
 
 
 def mapper(key, value):
