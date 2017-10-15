@@ -3,7 +3,6 @@ from random import randint
 # siganture matrix is partitioned into b bands consisting of r rows each
 b = 50 # the more bands the less false negatives
 r = 25 # the more rows the less false positives
-# -> chosen by cross-validation
 
 # size of one signature = number of min-hashing functions used
 min_hash_size = r*b

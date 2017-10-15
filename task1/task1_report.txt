@@ -1,0 +1,7 @@
+The overall idea is that a mapper outputs a page with his band hashes. The reducer receives pages with equal band hashes and takes all possible pairs over those candidates, computes the exact Jaccard similarity and compares it to the given threshold. 
+
+The mapper takes as key None and as a value one line of the input file i.e a single page. First we extract the shingles from the page. To compute the signature we go over all shingles, compute the permuted index with a hash function (constructed as shown in the lecture) and take the minimum. This will give us one entry of the signature. We repeat this for different hash function parameters chosen u.a.r. Then we split the signature into b bands each consisting of r rows. Each band is hashed as shown in the lecture. For each band we create the following output: The band index concatenated with the band hash as the key and the page as the value. 
+
+The reducer will then receive as input value, a list of pages having the same band hashed to the same bucket by definition. We compute the Jaccard similarity between all possible pairs and output the id’s of all pairs where the similarity is at least 0.85 to eliminate false positives. 
+
+The parameters are adjusted until we get a good tradeoff between the f1-score and the run-time. 
