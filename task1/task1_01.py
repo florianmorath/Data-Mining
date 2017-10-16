@@ -46,9 +46,11 @@ def mapper(key, value):
         # go over all shingles and compute permuted index with a hash function
         # the constraint C(i)=1 is implicitly satisfied since we only go over all shingles which are actually part of the page (have a 1 entry)
         for s in shingles:
-            t.append(((a[i]*z + b[i]) % prime1) % shingle_space_size)
+            #t.append(((a[i]*z + b[i]) % prime1) % shingle_space_size)
+            t[len(t)] = [((a[i]*z + b[i]) % prime1) % shingle_space_size]
         # take the minimal permuted index
-        signature.append(min(t))
+        sig[len(sig):] = [min(t)]
+        #sig.append(min(t))
 
     # split the signature into b bands, each consisting of r rows
     bands = [signature[i:i + r] for i in range(0, len(signature), r)]
@@ -59,8 +61,10 @@ def mapper(key, value):
         t = []
         # hash a single band by summing over r hash functions
         for j in range(r):
-            t.append(((c[j]*b[j] + d[j]) % prime2) % band_hash_bucket_size)
-        band_hashes.append(sum(t) % band_hash_bucket_size)
+            #t.append(((c[j]*b[j] + d[j]) % prime2) % band_hash_bucket_size)
+            t[len(t)] = [((c[j]*b[j] + d[j]) % prime2) % band_hash_bucket_size]
+        #band_hashes.append(sum(t) % band_hash_bucket_size)
+        band_hashes[len(band_hashes):] = [sum(t) % band_hash_bucket_size]
 
 
     # key: a band's id concatenated with the band's hash
@@ -86,8 +90,11 @@ def reducer(key, values):
         page_id = int(v.split()[0].split("_")[1])
         # extract the shingles of a page
         shingles = map(int, v.split()[1:])
-        page_ids.append(page_id)
-        page_shingles.append(shingles)
+
+        page_ids[len(page_ids):] = [page_id]
+        page_shingles[len(page_shingles):] = [shingles]
+        #page_ids.append(page_id)
+        #page_shingles.append(shingles)
 
     # for all candidate pairs (i,j) compute jaccard similarity
     for i in range(len(values)):
