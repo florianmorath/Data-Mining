@@ -1,0 +1,10 @@
+The task was to design a map-reduce program to do near-duplicate detection for html pages (represented as a list of shingles).
+Parameters were adjusted until we got a good f1-score and a sufficiently good run-time.
+
+Our mapper receives a tuple (key,value), where key is None and value is one line of the input file. The mapper computes the signature as follows: Go over all the shingles and compute their permuted index, using a hash function as defined in the lecture (h(x)=(a*x+b mod p) mod N). Then take the min index. Repeat this for all hash functions. The a's and b's for the different hash functions are precomputed (drawn u.a.r) and stored in a list. The prime number is also defined at the beginning and N ist just the number of possible shingles (8193). 
+
+
+Next, the sig gets divided into b bands of r rows each. Each band is hashed in the way we saw in the lecture (r-hash values summed up). The mapper returns a list of key-value pairs where key is a band's id concatenated with the band's hash, and value is the page.
+
+
+The reducer receives as key a band's id concatenated with its hash and as values a list of pages having the same band hashed to the same bucket. It first sorts the values, extracts the page ids and the shingles. It then calculates the jaccard similarity for each pair of pages. If their jaccard similarity is >= 0.85 (eliminate false positives) it outputs the pair as a tuple (page_ids[i], page_ids[j]).
