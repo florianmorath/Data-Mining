@@ -29,7 +29,7 @@ prime2 = 1400305369
 
 # calculate the Jaccard similarity between two lists
 def similarity(list1, list2):
-    return len(set(list1) & set(list2)) * 1.0/len(set1 | set2)
+    return len(set(list1) & set(list2)) * 1.0/len(set(list1) | set(list2))
 
 
 def mapper(key, value):
@@ -46,23 +46,23 @@ def mapper(key, value):
         # go over all shingles and compute permuted index with a hash function
         # the constraint C(i)=1 is implicitly satisfied since we only go over all shingles which are actually part of the page (have a 1 entry)
         for s in shingles:
-            #t.append(((a[i]*z + b[i]) % prime1) % shingle_space_size)
-            t[len(t)] = [((a[i]*z + b[i]) % prime1) % shingle_space_size]
+            #t.append(((a[i]*s + b[i]) % prime1) % shingle_space_size)
+            t[len(t):] = [((a[i]*s + b[i]) % prime1) % shingle_space_size]
         # take the minimal permuted index
         sig[len(sig):] = [min(t)]
         #sig.append(min(t))
 
     # split the signature into b bands, each consisting of r rows
-    bands = [signature[i:i + r] for i in range(0, len(signature), r)]
+    bands = [sig[i:i + r] for i in range(0, len(sig), r)]
 
     # hash the bands of the signature (AND construction)
     band_hashes = []
-    for b in bands:
+    for band in bands:
         t = []
         # hash a single band by summing over r hash functions
         for j in range(r):
             #t.append(((c[j]*b[j] + d[j]) % prime2) % band_hash_bucket_size)
-            t[len(t)] = [((c[j]*b[j] + d[j]) % prime2) % band_hash_bucket_size]
+            t[len(t):] = [((c[j]*band[j] + d[j]) % prime2) % band_hash_bucket_size]
         #band_hashes.append(sum(t) % band_hash_bucket_size)
         band_hashes[len(band_hashes):] = [sum(t) % band_hash_bucket_size]
 
