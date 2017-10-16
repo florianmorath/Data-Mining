@@ -8,16 +8,18 @@ r = 25 # the more rows the less false positives
 shingle_space_size = 8193
 band_hash_bucket_size = 10000000 # as large as we can afford
 
-# size of one signature = number of min-hashing functions used
+# size of one signature = number of min-hashing functions used (#bands times #rows per band)
 min_hash_size = r*b
 
-# u.a.r integers a and b used for min-hashing/permutations
-# a and b consist of min_hash_size elements
+# u.a.r integers a and b used for constructing the hash functions
+# a and b consist of min_hash_size elements (every row in the signature matrix corresponds to one hash function)
+# a must not be zero
 a = [randint(1, shingle_space_size) for i in range(min_hash_size)]
 b = [randint(0, shingle_space_size) for i in range(min_hash_size)]
 
-# u.a.r integers a and b used for hashing bands
-# c and d consist of r elements
+# u.a.r integers c and d used for hashing bands
+# c and d consist of r elements (each band has r rows)
+# c must not be zero
 c = [randint(1, band_hash_bucket_size) for i in range(r)]
 d = [randint(0, band_hash_bucket_size) for i in range(r)]
 
@@ -38,26 +40,27 @@ def mapper(key, value):
     shingles = map(int, value.split()[1:])
 
     # compute signature of this page
-    signature = []
+    sig = []
     for i in range(min_hash_size):
-        temp = []
+        t = []
         # go over all shingles and compute permuted index with a hash function
-        for z in shingles:
-            temp.append(((a[i]*z + b[i]) % prime1) % shingle_space_size)
+        # the constraint C(i)=1 is implicitly satisfied since we only go over all shingles which are actually part of the page (have a 1 entry)
+        for s in shingles:
+            t.append(((a[i]*z + b[i]) % prime1) % shingle_space_size)
         # take the minimal permuted index
-        signature.append(min(temp))
+        signature.append(min(t))
 
-    # split the signature into b bands each consisting of r rows
+    # split the signature into b bands, each consisting of r rows
     bands = [signature[i:i + r] for i in range(0, len(signature), r)]
 
     # hash the bands of the signature (AND construction)
     band_hashes = []
-    for band in bands:
-        temp = []
+    for b in bands:
+        t = []
         # hash a single band by summing over r hash functions
         for j in range(r):
-            temp.append(((c[j]*band[j] + d[j]) % prime2) % band_hash_bucket_size)
-        band_hashes.append(sum(temp) % band_hash_bucket_size)
+            t.append(((c[j]*b[j] + d[j]) % prime2) % band_hash_bucket_size)
+        band_hashes.append(sum(t) % band_hash_bucket_size)
 
 
     # key: a band's id concatenated with the band's hash
@@ -74,15 +77,15 @@ def reducer(key, values):
     # sort the list of pages
     values.sort()
 
-    # extract id and shingles from each page s.t. jaccard similarity can be
+    # get id and shingles from each page s.t. jaccard similarity can be
     # computed between candidate pairs
     page_ids = []
     page_shingles = []
-    for value in values:
+    for v in values:
         # extract the page id
-        page_id = int(value.split()[0].split("_")[1])
+        page_id = int(v.split()[0].split("_")[1])
         # extract the shingles of a page
-        shingles = map(int, value.split()[1:])
+        shingles = map(int, v.split()[1:])
         page_ids.append(page_id)
         page_shingles.append(shingles)
 
