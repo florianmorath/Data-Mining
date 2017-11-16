@@ -1,0 +1,8 @@
+The mappers run SGD independently on their input (subset of the images) and compute a weight vector. The single reducer which we have than receives all these weight vectors and outputs their average as the final weight vector which can be used for classifying.
+
+The mapper does linear classification on non-linear features by applying a feature transformation. As the feature transformation we used Random Fourier Features (Cauchy kernel), where we use 2000 samples to approximate the kernel. The omega samples are drawn from a Laplace distribution. The omega and b samples are precomputed (drawn) and stored in a numpy array.
+We added one extra dimension after the feature transformation with a value of 1 to absorb the bias.
+
+For optimizing over the hinge loss we used the ADAM algorithm discussed in the lecture (lecture 7 - parallel learning, slide 13). The weight vector w is initialized with 0, as well as the two moment vectors. At the beginning indexes (1..n) are shuffled randomly such that we go over the training samples in a random order. The decay rates and epsilon were set to the values proposed in the paper by Kingma & Ba.
+
+The learning rate and other parameters where adjusted until we had a good accuracy and a reasonable runtime.
