@@ -1,0 +1,10 @@
+The overall idea is the following: Each mapper runs SGD independently on the subset of images assigned to it and produces a weight vector. After that all the weight vectors are gathered by a single reducer. The reducer computes the average of the weight vectors which results in a single final weight vector that can be used to classify the images. 
+
+Implementation of the mapper in more detail: 
+
+Basically the mapper does linear classification on nonlinearly transformed features. 
+The nonlinear feature transformation is done by transforming features to random Fourier features (RFF). The feature space is transformed from 400 to 2000 dimensions. An extra dimension with a value of one is added s.t the bias can be integrated in the weight vector. Since we have chosen the Cauchy kernel for the RFF the omega sample is sampled from a Laplace distribution. 
+
+To stochastically optimise over the hinge loss we have chosen the ADAM algorithm which is based on adaptive estimates of lower-order moments and implemented as given in the paper. The ADAM parameters (decay rate for moment estimates and epsilon) were set to the values recommended in the paper. 
+
+Other parameters like the number of features after the transformation were changed until a good tradeoff between runtime and predictive accuracy was achieved. 

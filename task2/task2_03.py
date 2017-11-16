@@ -15,7 +15,7 @@ epsilon = 10**(-9)
 
 RFF_count = 2000  # Number of random fourier features = number of samples
 
-# Omega and beta samples for Random Fourier Features with Laplacian kernel
+# Omega and beta samples for Random Fourier Features with Cauchy kernel
 sigma = 2
 np.random.seed(seed = 1000)
 omega_samples = np.random.laplace(scale=sigma, size=(RFF_count, input_dim))
