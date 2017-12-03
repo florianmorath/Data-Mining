@@ -38,7 +38,7 @@ def mapper(key, value):
         dist = np.vstack((dist, norms))
         current_min_dist = dist.min(axis=0) # holds for every point of the data set the current min distance to the sampled points (centers)
         probabilities = current_min_dist/current_min_dist.sum()
-        b = images[choice(N, p=pprobabilities)] # sample a new point with probability proportional to the minimum distance to the already sampled points
+        b = images[choice(N, p=probabilities)] # sample a new point with probability proportional to the minimum distance to the already sampled points
 
     # use importance sampling to construct a coreset
     Bi_indexes = dist.argmin(axis=0) # array containing the index of the closest sampled center for each point in images
@@ -52,7 +52,7 @@ def mapper(key, value):
     Bi_part = [2.0*alpha*sum_Bi_min_dist[i]/(len(Bi[i])*c_phi) + 4.0*N/len(Bi[i]) if Bi[i] else 0 for i in range(k)] # second summand of sampling probability
     sensitivity = np.array([alpha*current_min_dist[x]/c_phi + Bi_part[Bi_indexes[x]] for x in range(N)])
     probabilities = sensitivity/sensitivity.sum() # compute sampling probability for every point in images
-    weights = 1.0/(m*p) # compute weight for every point in images
+    weights = 1.0/(m*probabilities) # compute weight for every point in images
     coreset = [(images[s], weights[s]) for s in choice(N, size=m, p=probabilities)] # sample m points using the calculated probabilities and construct the coreset
 
     print len(coreset)
@@ -71,19 +71,19 @@ def reducer(key, values):
 
     for e in range(epochs):
         # sum of the points closest to each center for each restart
-        point_sum = [[0 for i in range(k)] for r in range(restarts)] 
+        point_sum = [[0 for i in range(k)] for r in range(restarts)]
         # number of points closest to each center for each restart
-        point_count = [[0 for i in range(k)] for r in range(restarts)] 
+        point_count = [[0 for i in range(k)] for r in range(restarts)]
         for x,w in coreset:
             # find the closest center to the point x for each restart
-            closests_centers = norm(centers - x, axis=2).argmin(axis=1) 
+            closests_centers = norm(centers - x, axis=2).argmin(axis=1)
             for r in range(restarts):
                 # update the sum
-                point_sum[r][closests_centers[r]] += w*x 
+                point_sum[r][closests_centers[r]] += w*x
                 # update the count
-                point_count[r][closests_centers[r]] += w 
+                point_count[r][closests_centers[r]] += w
         # update the centers
-        centers = np.array([[point_sum[r][i]/point_count[r][i] if point_count[r][i] != 0 else centers[r][i] for i in range(k)] for r in range(restarts)]) 
+        centers = np.array([[point_sum[r][i]/point_count[r][i] if point_count[r][i] != 0 else centers[r][i] for i in range(k)] for r in range(restarts)])
 
     # Compute the normalized quantization error on the coreset for a specific set of centers
     X = [v[0]for v in coreset]
@@ -101,7 +101,7 @@ def reducer(key, values):
     # Choose the centers which result in the best NQE
     score_candidates = [NQE(centers[r]) for r in range(restarts)]
     print "Scores candidates:", score_candidates
-    print "Best score:", min(scores)
-    i_min = np.array(scores).argmin()
+    print "Best score:", min(score_candidates)
+    i_min = np.array(score_candidates).argmin()
 
     yield centers[i_min]
