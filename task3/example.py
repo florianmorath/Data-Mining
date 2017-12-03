@@ -10,7 +10,6 @@ N = 3000    # each mapper receives 3000 images
 k = 200     # number of centers of k-means
 restarts = 5
 epochs = 15
-chunk_size = 100
 
 # Coreset construction parameters (perfomed in mapper)
 alpha = (np.log2(k) + 1)
@@ -76,20 +75,18 @@ def reducer(key, values):
                 point_count[r][c[r]] += w # update the count
         centers = np.array([[point_sum[r][i]/point_count[r][i] if point_count[r][i] != 0 else centers[r][i] for i in range(k)] for r in range(restarts)]) # update the centers
 
-    # Split coreset points and weights into chunks to limit memory usage in NQE()
-    coreset_chunks = [coreset[i:i + chunk_size] for i in range(0, len(coreset), chunk_size)]
-    X_chunks = np.array([[v[0]for v in c] for c in coreset_chunks])
-    W_chunks = np.array([[v[1]for v in c] for c in coreset_chunks])
+    X = [v[0]for v in coreset]
+    W = [v[1]for v in coreset]
 
     # Compute the normalized quantization error on the coreset for a centers configuration
     def NQE(centers):
-        score = 0.0
-#        for i in range(len(coreset_chunks)):
-#            score += (W_chunks[i]*(norm(X_chunks[i][:,np.newaxis,:] - centers, axis=2)**2).min(axis=1)).sum()
-#        return score/(N*10)
-        for i in range(len(coreset)):
-            score += (coreset[i][1] * norm(coreset[i][0] - centers, axis=1)**2).min(axis=1)
-        return score
+        score = 0
+        for i in range(len(X)):
+            distance = 10000 # np.inf
+            for c in centers:
+                distance = min(distance, norm(X[i]-c)**2)
+            score += distance * W[i]
+        return score/(N*10)
 
     # Select the result of the repetition with the smallest error
     scores = [NQE(centers[r]) for r in range(restarts)]
