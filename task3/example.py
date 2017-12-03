@@ -57,28 +57,35 @@ def mapper(key, value):
 
 
 def reducer(key, values):
-    # key: key from mapper used to aggregate
-    # values: list of all value for that key
+    # key: key from mapper used to aggregate (= 0 for all mappers)
+    # values: list of all value for that key (list of (image, weight) pairs)
     coreset = values    # union of all coresets received from reducers
 
-    # Perform k-means with multiple random restarts
-    # Initialize the centers for each restart by sampling from the coreset with uniform probability
+    # k-means algorithm performed on coreset
+    # each restart has a different initial guess of the k centers (chosen u.a.r)
+    # centers.shape = (restarts, k, D)
     centers = np.array([[coreset[i][0] for i in choice(len(coreset), size=k)] for r in range(restarts)])
 
     for e in range(epochs):
-        point_sum = [[0 for i in range(k)] for r in range(restarts)] # sum of the points closest to each center for each restart
-        point_count = [[0 for i in range(k)] for r in range(restarts)] # number of points closest to each center for each restart
+        # sum of the points closest to each center for each restart
+        point_sum = [[0 for i in range(k)] for r in range(restarts)]
+        # number of points closest to each center for each restart
+        point_count = [[0 for i in range(k)] for r in range(restarts)]
         for x,w in coreset:
-            c = norm(centers - x, axis=2).argmin(axis=1) # find the closest center to the point x for each restart
+            # find the closest center to the point x for each restart
+            closests_centers = norm(centers - x, axis=2).argmin(axis=1)
             for r in range(restarts):
-                point_sum[r][c[r]] += w*x # update the sum
-                point_count[r][c[r]] += w # update the count
-        centers = np.array([[point_sum[r][i]/point_count[r][i] if point_count[r][i] != 0 else centers[r][i] for i in range(k)] for r in range(restarts)]) # update the centers
+                # update the sum
+                point_sum[r][closests_centers[r]] += w*x
+                # update the count
+                point_count[r][closests_centers[r]] += w
+        # update the centers
+        centers = np.array([[point_sum[r][i]/point_count[r][i] if point_count[r][i] != 0 else centers[r][i] for i in range(k)] for r in range(restarts)])
 
+    # Compute the normalized quantization error on the coreset for a specific set of centers
     X = [v[0]for v in coreset]
     W = [v[1]for v in coreset]
 
-    # Compute the normalized quantization error on the coreset for a centers configuration
     def NQE(centers):
         score = 0
         for i in range(len(X)):
@@ -88,10 +95,10 @@ def reducer(key, values):
             score += distance * W[i]
         return score/(N*10)
 
-    # Select the result of the repetition with the smallest error
-    scores = [NQE(centers[r]) for r in range(restarts)]
-    print "Restart scores:", scores
-    print "Best score:", min(scores)
-    min_index = np.array(scores).argmin()
+    # Choose the centers which result in the best NQE
+    score_candidates = [NQE(centers[r]) for r in range(restarts)]
+    print "Scores candidates:", score_candidates
+    print "Best score:", min(score_candidates)
+    i_min = np.array(score_candidates).argmin()
 
-    yield centers[min_index]
+    yield centers[i_min]
