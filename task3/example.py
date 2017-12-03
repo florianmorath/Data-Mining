@@ -2,21 +2,22 @@ import numpy as np
 from numpy.random import randint, choice, shuffle
 from numpy.linalg import norm
 
-# Task parameters
-D = 250
-N = 3000
-k = 200
+# Fixed params based on input size to a mapper
+D = 250     # each image has 250 dimensions
+N = 3000    # each mapper receives 3000 images
 
-# Coreset construction parameters
-#alpha = 16*(np.log(k) + 2)
+# Coreset construction parameters (perfomed in mapper)
 alpha = (np.log2(k) + 1)
-m = 5000 # coreset size per mapper
+m = 1000    # size of the coreset each mapper produces
 
-# k-means parametes
+# k-means parameters (performed in reducer)
+k = 200     # number of centers of k-means
 restarts = 5
 epochs = 15
 chunk_size = 100
 
+# make algorithm deterministic: easyier to test based on scores received
+np.random.seed(seed = 3333) # 2017, 1
 
 def mapper(key, value):
     # key: None
@@ -24,11 +25,11 @@ def mapper(key, value):
 
     images = value
 
-    # do D^2-sampling
+    # do D^2-sampling -> results in a bicriteria approximation
     distances = np.empty((0, N)) # 2D array containing the distances of each sampled point to every point in images
     # first row of distances contains the distances of each point in images to the first sampled point
     # second row contains distances of each point to the second sampled point and so on
-    b = images[randint(N)] # sample the first center uniformly (is a row vector)
+    b = images[randint(N)] # sample the first center u.a.r (is a row vector)
     for i in range(1, k):
         # for each data point (row in the images matrix), subtract point b and calculate the squared norm of the distance
         # add distance of every point in images to the new sampled point b
@@ -48,8 +49,7 @@ def mapper(key, value):
     Bi_part = [2.0*alpha*min_distances_sum_Bi[i]/(len(Bi[i])*c_phi) + 4.0*N/len(Bi[i]) if Bi[i] else 0 for i in range(k)] # second summand of sampling probability
     s = np.array([alpha*min_distances[x]/c_phi + Bi_part[Bi_indexes[x]] for x in range(N)])
     p = s/s.sum() # compute sampling probability for every point in images
-    w = 1.0/p
-    #w = 1.0/(m*p) # compute weight for every point in images
+    w = 1.0/(m*p) # compute weight for every point in images
     coreset = [(images[s], w[s]) for s in choice(N, size=m, p=p)] # sample m points using the calculated probabilities and construct the coreset
 
     print len(coreset)
@@ -59,8 +59,7 @@ def mapper(key, value):
 def reducer(key, values):
     # key: key from mapper used to aggregate
     # values: list of all value for that key
-    # Note that we do *not* output a (key, value) pair here.
-    coreset = values
+    coreset = values    # union of all coresets received from reducers
 
     # Perform k-means with multiple random restarts
     # Initialize the centers for each restart by sampling from the coreset with uniform probability
@@ -95,4 +94,3 @@ def reducer(key, values):
     min_index = np.array(scores).argmin()
 
     yield centers[min_index]
-    #yield np.random.randn(200, 250)
