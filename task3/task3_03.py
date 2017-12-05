@@ -10,14 +10,14 @@ N = 3000    # each mapper receives 3000 images
 k = 200     # number of centers of k-means
 restarts = 5
 epochs = 15
-
+k2 = 100
 # Coreset construction parameters (perfomed in mapper)
 alpha = (np.log2(k) + 1)
 m = 1000    # size of the coreset each mapper produces
 
 # make algorithm deterministic: easyier to test based on scores received
-np.random.seed(seed = 3333) # 2017, 1
-
+#np.random.seed(seed = 42) # 2017, 1
+np.random.seed(seed=20)
 def mapper(key, value):
     # key: None
     # value: array of 3000 training images, 250 features each
@@ -29,7 +29,7 @@ def mapper(key, value):
     # first row of distances contains the distances of each point in images to the first sampled point
     # second row contains distances of each point to the second sampled point and so on
     b = images[randint(N)] # sample the first point u.a.r (is a row vector)
-    for i in range(1, k):
+    for i in range(1, k2):
         # for each data point (row in the images matrix), subtract point b and calculate the squared norm of the distance
         # add distance of every point in images to the new sampled point b
         dist = np.vstack((dist, norm(images - b, axis=1)**2))
@@ -39,14 +39,14 @@ def mapper(key, value):
 
     # use importance sampling to construct a coreset
     Bi_indexes = dist.argmin(axis=0) # array containing the index of the closest sampled center for each point in images
-    Bi = [[] for i in range(k)] # Bi[j] contains the indexes of the points from images which are closest to the jth sampled point
+    Bi = [[] for i in range(k2)] # Bi[j] contains the indexes of the points from images which are closest to the jth sampled point
     for i in range(N):
         #fill Bi
         Bi[Bi_indexes[i]].append(i)
     # Compute the sensitivity for every point in images
     c_phi = current_min_dist.sum()/N
-    sum_Bi_min_dist = [sum([current_min_dist[x] for x in Bi[i]]) for i in range(k)]
-    Bi_part = [2.0*alpha*sum_Bi_min_dist[i]/(len(Bi[i])*c_phi) + 4.0*N/len(Bi[i]) if Bi[i] else 0 for i in range(k)] # second summand of sampling probability
+    sum_Bi_min_dist = [sum([current_min_dist[x] for x in Bi[i]]) for i in range(k2)]
+    Bi_part = [2.0*alpha*sum_Bi_min_dist[i]/(len(Bi[i])*c_phi) + 4.0*N/len(Bi[i]) if Bi[i] else 0 for i in range(k2)] # second summand of sampling probability
     s = np.array([alpha*current_min_dist[x]/c_phi + Bi_part[Bi_indexes[x]] for x in range(N)])
     p = s/s.sum() # compute sampling probability for every point in images
     w = 1.0/(m*p) # compute weight for every point in images

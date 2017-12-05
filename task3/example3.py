@@ -7,9 +7,9 @@ D = 250     # each image has 250 dimensions
 N = 3000    # each mapper receives 3000 images
 
 # k-means parameters (performed in reducer)
-k = 200     # number of centers of k-means
+k = 150     # number of centers of k-means
 restarts = 5
-epochs = 15
+epochs = 20
 
 # Coreset construction parameters (perfomed in mapper)
 alpha = (np.log2(k) + 1)
@@ -25,17 +25,20 @@ def mapper(key, value):
     images = value
 
     # do D^2-sampling -> results in a bicriteria approximation
-    dist = np.empty((0, N)) # 2D array containing the distances of each sampled point to every point in images
+    n = randint(N) # random index between 0 and N (u.a.r)
+    b = images[n] # sample the first point (row vector)
+    dist = np.empty((0, N)) # contains the distances of each sampled point to every point in images
     # first row of distances contains the distances of each point in images to the first sampled point
     # second row contains distances of each point to the second sampled point and so on
     b = images[randint(N)] # sample the first point u.a.r (is a row vector)
     for i in range(1, k):
         # for each data point (row in the images matrix), subtract point b and calculate the squared norm of the distance
-        # add distance of every point in images to the new sampled point b
+        # add distance of every point in images, as a new row to the dist matrix
+        #norms = norm(images - b, axis=1)**2
         dist = np.vstack((dist, norm(images - b, axis=1)**2))
-        current_min_dist = dist.min(axis=0) # compute for every point of the data set the current minimum distance to the samled points (centers)
+        current_min_dist = dist.min(axis=0) # holds for every point of the data set the current min distance to the sampled points (centers)
         p = current_min_dist/current_min_dist.sum()
-        b = images[choice(N, p=p)] # sample a new center with probability proportional to the minimum distance to the already sampled points
+        b = images[choice(N, p=p)] # sample a new point with probability proportional to the minimum distance to the already sampled points
 
     # use importance sampling to construct a coreset
     Bi_indexes = dist.argmin(axis=0) # array containing the index of the closest sampled center for each point in images
@@ -47,10 +50,10 @@ def mapper(key, value):
     c_phi = current_min_dist.sum()/N
     sum_Bi_min_dist = [sum([current_min_dist[x] for x in Bi[i]]) for i in range(k)]
     Bi_part = [2.0*alpha*sum_Bi_min_dist[i]/(len(Bi[i])*c_phi) + 4.0*N/len(Bi[i]) if Bi[i] else 0 for i in range(k)] # second summand of sampling probability
-    s = np.array([alpha*current_min_dist[x]/c_phi + Bi_part[Bi_indexes[x]] for x in range(N)])
-    p = s/s.sum() # compute sampling probability for every point in images
-    w = 1.0/(m*p) # compute weight for every point in images
-    coreset = [(images[s], w[s]) for s in choice(N, size=m, p=p)] # sample m points using the calculated probabilities and construct the coreset
+    sensitivity = np.array([alpha*current_min_dist[x]/c_phi + Bi_part[Bi_indexes[x]] for x in range(N)])
+    p = sensitivity/sensitivity.sum() # compute sampling probability for every point in images
+    weights = 1.0/(m*p) # compute weight for every point in images
+    coreset = [(images[s], weights[s]) for s in choice(N, size=m, p=p)] # sample m points using the calculated probabilities and construct the coreset
 
     print len(coreset)
     yield 0, coreset
