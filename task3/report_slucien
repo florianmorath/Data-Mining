@@ -1,0 +1,6 @@
+Our idea was to to first use d^2-sampling to create a bicriteria and based on that do an importance sampling to get a coreset on which we do kMeans to get the final centers.
+
+Mapper: The mapper receives 3000 training images (each has 250 features). It then does d^2 sampling on the input images to get a bicriteria of 200 points (sample each point with a probability proportional to the minimal distance to the previously sampled points). Next it does an importance sampling: It calculates the sensitivity for each input point as described in "Practical coreset construction: step 2" in the lectures and from the sensitivity calculates the sampling probability and the weight of each point. It then samples m=1600 points using these probabilities and finally yields one key-value pair where key is 0 and value is the coreset(a list of tuples, each containing a sampled point and its corresponding weight).
+
+We have only one single reducer. The reducer uses multiple restarts. In every restart it samples 200 intial centers using d^2 sampling from the received coresets of the mappers. Next it performs the k-Means algorithm.
+At the end it looks which restart had the best score and yields the computed cluster centers of that restart.
