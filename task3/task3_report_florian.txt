@@ -1,0 +1,10 @@
+The overall idea is the following: Each mapper receives a subset of images and constructs a coreset of those images. The reducer receives all the coresets of the mappers and takes the union. The union is the final coreset on which k-means is performed. The resulting centers are returned. 
+
+Implementation details: 
+A mapper receives 3000 images which are of 250 dimensions each. The coreset is constructued in two steps: 
+In the first step D^2-sampling is applied to obtain a bicriteria approximation B (i.e a rough approximation of the optimal clustering) as follows: The first center is sampled u.a.r and subsequent centers are sampled one after the other with probability proportional to the minimum squared distance to the already sampled centers. 
+
+In the second step importance sampling is done: The importance sampling distribution q(x) is proportional to the upper bound on the sensitivity of x which is computed based on B as given on the lecture slides. Sampling from the images based on q yields a coreset where each sampled x is associated with an importance weight 1/q(x). 
+The reducer takes the union of the coresets and performs k-means on it with k=200: Multiple guesses of the initial centers are made using D^2-sampling. This ensures that we also sample the small clusters with high probability. After applying k-means, the updated centers which performed the best among the restarts, based on the normalized quantization error, are returned.  
+
+Parameters like the number of images a coreset, produced by a mapper, contains were changed until a good tradeoff between runtime and normalized quantization error is obtained. 
