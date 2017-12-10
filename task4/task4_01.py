@@ -8,12 +8,15 @@ Ainv = {}
 theta = {}
 
 #LinUCB parameters
+# delta = 0.005
+# delta = 0.05
 delta = 0.01
 alpha = 1 + np.sqrt(np.log(2/delta)/2)
-#alpha = 5
+# alpha = 5
 # reward scaling paramenters
-r0 = -1
-r1 = 20
+r0 = -0.5
+r1 = 100
+# r1 = 100
 print "alpha = {}, r0 = {}, r1 = {}".format(alpha, r0, r1)
 
 # store current recommended article and current user features
@@ -49,7 +52,7 @@ def recommend(time, user_features, choices):
 
     first = 1
     for arm in choices:
-        # create arrays for new article 
+        # create arrays for new article
         if arm not in A:
             A[arm] = np.identity(d)
             b[arm] = np.zeros((d, 1))
@@ -67,4 +70,3 @@ def recommend(time, user_features, choices):
 
     # recommend article with maximum UCB
     return chosen_arm
-
